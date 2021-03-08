@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_socketio import SocketIO, join_room, leave_room
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user
-from db import get_user
+from db import get_user, save_user
 
 app = Flask(__name__)
 app.secret_key = 'my-secret-key'
@@ -12,7 +12,7 @@ login_manager.init_app(app)
 
 
 # TODO - move routes, socketio, login into seperate files
-@app.route("/")
+@app.route('/')
 def base():
     return redirect(url_for('login'))
 
@@ -52,11 +52,29 @@ def login():
     return render_template('login.html', message=message)
 
 
-@app.route("/logout")
+@app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
+    message = ''
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        try:
+            save_user(username, email, password)
+            return redirect(url_for('login'))
+        except DuplicateKeyErro:
+            message = "User already exists"
+    return render_template('register.html', message=message)
 
 
 ### SOCKET-IO ###
